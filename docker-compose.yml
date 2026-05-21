@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: Nstech-postgres
+    environment:
+      POSTGRES_USER: Nstech
+      POSTGRES_PASSWORD: Nstech
+      POSTGRES_DB: Nstech
+    ports:
+      - "5432:5432"
+    volumes:
+      - Nstech_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U Nstech -d Nstech"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: src/Nstech.Api/Dockerfile
+    container_name: Nstech-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=Nstech;Username=Nstech;Password=Nstech
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Username: Nstech
+      RabbitMq__Password: Nstech
+      Jwt__Key: cash-flow-demo-secret-key-with-at-least-32-chars
+      Jwt__Issuer: NstechChallenge
+      Jwt__Audience: NstechChallenge
+    ports:
+      - "8080:8080"
+
+volumes:
+  Nstech_postgres_data:
